@@ -3,8 +3,77 @@ type Account {
   id: ID!
   # approvals are a list of approvals that this account has given
   approvals: [Approval!]! @derivedFrom(field: "owner")
-  # account balance of tokens
-  balance: BigInt!
+  # Token balances for this account
+  tokenBalances: [TokenBalance!]! @derivedFrom(field: "owner")
+}
+
+type Token {
+  # id is the token contract address
+  id: ID!
+  # address of the token (same as id)
+  address: String!
+  # chain ID
+  chain: String!
+  # token symbol
+  symbol: String!
+  # token name
+  name: String!
+  # token decimals
+  decimals: Int!
+  # token standard (ERC20)
+  standard: String!
+  # project information
+  project: Project
+  # token balances
+  tokenBalances: [TokenBalance!]! @derivedFrom(field: "token")
+}
+
+type Project {
+  # id is unique identifier for the project
+  id: ID!
+  # name of the project
+  name: String!
+  # logo URL
+  logoUrl: String
+  # safety level indicator
+  safetyLevel: String
+  # indicates if the token is marked as spam
+  isSpam: Boolean
+}
+
+type TokenBalance {
+  # id is [owner-token]
+  id: ID!
+  # quantity of tokens
+  quantity: BigInt!
+  # owner of the tokens
+  owner: Account!
+  # token information
+  token: Token!
+  # denominated value (can be null if price data unavailable)
+  denominatedValue: DenominatedValue
+}
+
+type DenominatedValue {
+  # id is unique identifier
+  id: ID!
+  # currency (USD, etc.)
+  currency: String!
+  # value in the specified currency
+  value: Float!
+}
+
+type Portfolio {
+  # id is the owner address
+  id: ID!
+  # owner address
+  ownerAddress: String!
+  # chain
+  chain: String!
+  # total value of all tokens
+  tokensTotalDenominatedValue: DenominatedValue
+  # Account associated with this portfolio
+  account: Account!
 }
 
 type Approval {
@@ -16,4 +85,6 @@ type Approval {
   owner: Account!
   # spender is the account that is approved to spend the tokens
   spender: Account!
+  # token that is being approved
+  token: Token!
 }

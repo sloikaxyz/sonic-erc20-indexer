@@ -3,7 +3,7 @@ name: sonic-erc20indexer
 description: Sonic ERC-20 indexer
 networks:
   - id: 146 # Sonic Mainnet
-    start_block: 10861674 # https://sonicscan.org/blocks
+    start_block: 12015000 # first tx on sonic
     rpc_config:
       url: "https://rpc.soniclabs.com"
     contracts:

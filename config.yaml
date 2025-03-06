@@ -13,17 +13,6 @@ networks:
         events:
           - event: "Approval(address indexed owner, address indexed spender, uint256 value)"
           - event: "Transfer(address indexed from, address indexed to, uint256 value)"
-  - id: 57054 # Sonic Blaze Testnet
-    start_block: 1 # Starting from genesis block for testnet
-    rpc_config:
-      url: "https://rpc.blaze.soniclabs.com"
-    contracts:
-      - name: ERC20
-        # address: "0x0000000000000000000000000000000000000000" # any token
-        handler: src/EventHandlers.ts
-        events:
-          - event: "Approval(address indexed owner, address indexed spender, uint256 value)"
-          - event: "Transfer(address indexed from, address indexed to, uint256 value)"
 # Unordered multichain mode allows you to index events from multiple chains
 # in realtime but doesn't guarentee ordering between chains
 # https://docs.envio.dev/docs/HyperIndex/multichain-indexing#unordered-multichain-mode

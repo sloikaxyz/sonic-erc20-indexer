@@ -1,14 +1,11 @@
+import { Approval, ERC20, Project } from "generated";
 import {
-  Account,
-  Approval,
-  Token,
-  TokenBalance,
-  Portfolio,
-  Project,
-  DenominatedValue,
-  ERC20,
-} from "generated";
-import { createPublicClient, http, getContract, parseAbi } from "viem";
+  createPublicClient,
+  fallback,
+  getContract,
+  http,
+  parseAbi,
+} from "viem";
 
 // Default chain is Sonic Mainnet (assuming it's a fork of Ethereum with chain ID 146)
 const CHAIN_ID = "146";
@@ -26,18 +23,50 @@ const sonicChain = {
   },
   rpcUrls: {
     default: {
-      http: ["https://rpc.soniclabs.com"],
+      http: [
+        "https://rpc.soniclabs.com",
+        "https://rpc.ankr.com/sonic_mainnet",
+        "https://sonic-rpc.publicnode.com",
+        "https://sonic.drpc.org",
+      ],
+      webSocket: [
+        "wss://sonic.callstaticrpc.com",
+        "wss://sonic-rpc.publicnode.com",
+        "wss://sonic.drpc.org",
+        "wss://rpc.ankr.com/sonic_mainnet/ws",
+      ],
     },
     public: {
-      http: ["https://rpc.soniclabs.com"],
+      http: [
+        "https://rpc.soniclabs.com",
+        "https://rpc.ankr.com/sonic_mainnet",
+        "https://sonic-rpc.publicnode.com",
+        "https://sonic.drpc.org",
+      ],
+      webSocket: [
+        "wss://sonic.callstaticrpc.com",
+        "wss://sonic-rpc.publicnode.com",
+        "wss://sonic.drpc.org",
+        "wss://rpc.ankr.com/sonic_mainnet/ws",
+      ],
     },
   },
 };
 
-// Create a public client for Sonic chain
+// Create a public client for Sonic chain with fallback RPC support
 const publicClient = createPublicClient({
   chain: sonicChain,
-  transport: http("https://rpc.soniclabs.com"),
+  transport: fallback(
+    [
+      http("https://rpc.soniclabs.com"),
+      http("https://rpc.ankr.com/sonic_mainnet"),
+      http("https://sonic-rpc.publicnode.com"),
+      http("https://sonic.drpc.org"),
+    ],
+    {
+      rank: true, // Enable automatic ranking based on latency and stability
+    }
+  ),
 });
 
 // ERC20 ABI for fetching token metadata
@@ -88,7 +117,10 @@ async function ensureToken(tokenAddress: string, context: any) {
       try {
         totalSupply = await contract.read.totalSupply();
       } catch (e) {
-        console.error(`Error fetching token totalSupply for ${tokenAddress}:`, e);
+        console.error(
+          `Error fetching token totalSupply for ${tokenAddress}:`,
+          e
+        );
       }
 
       // Create project with default values
@@ -142,7 +174,7 @@ async function ensureToken(tokenAddress: string, context: any) {
 
       // Create token with default values if metadata fetch fails
       const currentTimestamp = new Date().toISOString();
-      
+
       // Create market data entity
       const marketDataId = `market-${tokenAddress}`;
       await context.MarketData.set({
@@ -156,7 +188,7 @@ async function ensureToken(tokenAddress: string, context: any) {
         volume24h: 0n,
         updatedAt: currentTimestamp,
       });
-      
+
       token = {
         id: tokenAddress,
         address: tokenAddress,
@@ -233,9 +265,10 @@ async function updateTokenBalance(
   // Get existing token balance or create new one
   const balanceId = `${ownerAddress}-${tokenAddress}`;
   let tokenBalance = await context.TokenBalance.get(balanceId);
-  
+
   const isNewHolder = tokenBalance === undefined && amount > 0n;
-  const isRemovedHolder = tokenBalance !== undefined && tokenBalance.quantity > 0n && amount === 0n;
+  const isRemovedHolder =
+    tokenBalance !== undefined && tokenBalance.quantity > 0n && amount === 0n;
 
   if (tokenBalance === undefined) {
     tokenBalance = {
@@ -250,13 +283,13 @@ async function updateTokenBalance(
   }
 
   await context.TokenBalance.set(tokenBalance);
-  
+
   // Update holder count if necessary
   if (isNewHolder || isRemovedHolder) {
     const token = await context.Token.get(tokenAddress);
     if (token) {
-      token.holderCount = isNewHolder 
-        ? token.holderCount + 1 
+      token.holderCount = isNewHolder
+        ? token.holderCount + 1
         : Math.max(0, token.holderCount - 1);
       token.updatedAt = new Date().toISOString();
       await context.Token.set(token);
@@ -266,24 +299,24 @@ async function updateTokenBalance(
 
 // Function to update token popularity metrics
 async function updateTokenPopularity(
-  tokenAddress: string, 
+  tokenAddress: string,
   transferAmount: bigint,
   context: any
 ) {
   const token = await context.Token.get(tokenAddress);
-  
+
   if (token) {
     // Increment transaction count
     token.transactionCount += 1;
-    
+
     // Add to transfer volume
     token.transferVolume = token.transferVolume + transferAmount;
-    
+
     // Update timestamp
     token.updatedAt = new Date().toISOString();
-    
+
     await context.Token.set(token);
-    
+
     // Update market data volume - if token has marketData
     if (token.marketData_id) {
       const marketData = await context.MarketData.get(token.marketData_id);
@@ -337,7 +370,7 @@ ERC20.Transfer.handler(
 
     // Ensure token exists
     await ensureToken(tokenAddress, context);
-    
+
     // Update token popularity metrics
     await updateTokenPopularity(tokenAddress, event.params.value, context);
 

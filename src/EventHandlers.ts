@@ -45,6 +45,7 @@ const ERC20_ABI = parseAbi([
   "function name() view returns (string)",
   "function symbol() view returns (string)",
   "function decimals() view returns (uint8)",
+  "function totalSupply() view returns (uint256)",
 ]);
 
 // Function to ensure token exists and has metadata
@@ -64,6 +65,7 @@ async function ensureToken(tokenAddress: string, context: any) {
       let name = "Unknown Token";
       let symbol = "???";
       let decimals = 18;
+      let totalSupply = 0n;
 
       try {
         name = await contract.read.name();
@@ -83,18 +85,39 @@ async function ensureToken(tokenAddress: string, context: any) {
         console.error(`Error fetching token decimals for ${tokenAddress}:`, e);
       }
 
+      try {
+        totalSupply = await contract.read.totalSupply();
+      } catch (e) {
+        console.error(`Error fetching token totalSupply for ${tokenAddress}:`, e);
+      }
+
       // Create project with default values
       const projectId = `project-${tokenAddress}`;
       const project: Project = {
         id: projectId,
         name: name,
         logoUrl: "",
-        safetyLevel: "unknown",
+        safetyLevel: "VERIFIED", // Default safety level
         isSpam: false,
       };
       await context.Project.set(project);
 
-      // Create token entity
+      // Create market data entity
+      const marketDataId = `market-${tokenAddress}`;
+      await context.MarketData.set({
+        id: marketDataId,
+        token_id: tokenAddress,
+        price_id: null,
+        fullyDilutedValuation_id: null,
+        marketCap_id: null,
+        totalSupply: totalSupply,
+        circulatingSupply: totalSupply, // Default to total supply
+        volume24h: 0n,
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Create token entity with new popularity metrics
+      const currentTimestamp = new Date().toISOString();
       token = {
         id: tokenAddress,
         address: tokenAddress,
@@ -104,6 +127,11 @@ async function ensureToken(tokenAddress: string, context: any) {
         decimals: decimals,
         standard: "ERC20",
         project_id: projectId,
+        marketData_id: marketDataId,
+        transactionCount: 0,
+        transferVolume: 0n,
+        holderCount: 0,
+        updatedAt: currentTimestamp,
       };
       await context.Token.set(token);
     } catch (error) {
@@ -113,6 +141,22 @@ async function ensureToken(tokenAddress: string, context: any) {
       );
 
       // Create token with default values if metadata fetch fails
+      const currentTimestamp = new Date().toISOString();
+      
+      // Create market data entity
+      const marketDataId = `market-${tokenAddress}`;
+      await context.MarketData.set({
+        id: marketDataId,
+        token_id: tokenAddress,
+        price_id: null,
+        fullyDilutedValuation_id: null,
+        marketCap_id: null,
+        totalSupply: 0n,
+        circulatingSupply: 0n,
+        volume24h: 0n,
+        updatedAt: currentTimestamp,
+      });
+      
       token = {
         id: tokenAddress,
         address: tokenAddress,
@@ -122,6 +166,11 @@ async function ensureToken(tokenAddress: string, context: any) {
         decimals: 18,
         standard: "ERC20",
         project_id: null,
+        marketData_id: marketDataId,
+        transactionCount: 0,
+        transferVolume: 0n,
+        holderCount: 0,
+        updatedAt: currentTimestamp,
       };
       await context.Token.set(token);
     }
@@ -184,6 +233,9 @@ async function updateTokenBalance(
   // Get existing token balance or create new one
   const balanceId = `${ownerAddress}-${tokenAddress}`;
   let tokenBalance = await context.TokenBalance.get(balanceId);
+  
+  const isNewHolder = tokenBalance === undefined && amount > 0n;
+  const isRemovedHolder = tokenBalance !== undefined && tokenBalance.quantity > 0n && amount === 0n;
 
   if (tokenBalance === undefined) {
     tokenBalance = {
@@ -198,6 +250,50 @@ async function updateTokenBalance(
   }
 
   await context.TokenBalance.set(tokenBalance);
+  
+  // Update holder count if necessary
+  if (isNewHolder || isRemovedHolder) {
+    const token = await context.Token.get(tokenAddress);
+    if (token) {
+      token.holderCount = isNewHolder 
+        ? token.holderCount + 1 
+        : Math.max(0, token.holderCount - 1);
+      token.updatedAt = new Date().toISOString();
+      await context.Token.set(token);
+    }
+  }
+}
+
+// Function to update token popularity metrics
+async function updateTokenPopularity(
+  tokenAddress: string, 
+  transferAmount: bigint,
+  context: any
+) {
+  const token = await context.Token.get(tokenAddress);
+  
+  if (token) {
+    // Increment transaction count
+    token.transactionCount += 1;
+    
+    // Add to transfer volume
+    token.transferVolume = token.transferVolume + transferAmount;
+    
+    // Update timestamp
+    token.updatedAt = new Date().toISOString();
+    
+    await context.Token.set(token);
+    
+    // Update market data volume - if token has marketData
+    if (token.marketData_id) {
+      const marketData = await context.MarketData.get(token.marketData_id);
+      if (marketData) {
+        marketData.volume24h += transferAmount;
+        marketData.updatedAt = new Date().toISOString();
+        await context.MarketData.set(marketData);
+      }
+    }
+  }
 }
 
 ERC20.Approval.handler(
@@ -241,6 +337,9 @@ ERC20.Transfer.handler(
 
     // Ensure token exists
     await ensureToken(tokenAddress, context);
+    
+    // Update token popularity metrics
+    await updateTokenPopularity(tokenAddress, event.params.value, context);
 
     // Process sender balance update (if not zero address)
     if (

@@ -26,6 +26,35 @@ type Token {
   project: Project
   # token balances
   tokenBalances: [TokenBalance!]! @derivedFrom(field: "token")
+  # market data - a token has exactly one market data entry
+  marketData: MarketData
+  # popularity metrics
+  transactionCount: Int!
+  transferVolume: BigInt!
+  holderCount: Int!
+  # timestamp when the token was last updated
+  updatedAt: String!
+}
+
+type MarketData {
+  # id is the token address
+  id: ID!
+  # token this market data belongs to
+  token: Token!
+  # price in USD
+  price: DenominatedValue
+  # fully diluted valuation
+  fullyDilutedValuation: DenominatedValue
+  # market cap
+  marketCap: DenominatedValue
+  # total supply
+  totalSupply: BigInt
+  # circulating supply
+  circulatingSupply: BigInt
+  # 24h volume
+  volume24h: BigInt
+  # last updated timestamp
+  updatedAt: String!
 }
 
 type Project {
@@ -35,7 +64,7 @@ type Project {
   name: String!
   # logo URL
   logoUrl: String
-  # safety level indicator
+  # safety level indicator (VERIFIED, MEDIUM_WARNING, STRONG_WARNING, BLOCKED)
   safetyLevel: String
   # indicates if the token is marked as spam
   isSpam: Boolean

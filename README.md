@@ -64,19 +64,21 @@ While The Graph's hosted service doesn't directly support Sonic yet, you can req
    graph deploy --product hosted-service <YOUR_GITHUB_USER>/<SUBGRAPH_NAME>
    ```
 
-### Option 3: Alchemy Subgraphs (Network Request Required)
+### Option 3: Alchemy Subgraphs
 
-As of now, Alchemy Subgraphs doesn't directly support the Sonic chain, but you can:
+Alchemy Subgraphs supports Sonic chain with network name `sonic-mainnet`:
 
-1. Contact Alchemy support to request adding Sonic chain support
-2. Once supported, deploy using:
+1. Create a new subgraph in the Alchemy Dashboard
+2. Deploy using:
    ```bash
-   graph deploy sonic-erc20-subgraph \
+   graph deploy your-subgraph-name \
      --version-label v0.1.0 \
      --node https://subgraphs.alchemy.com/api/subgraphs/deploy \
      --deploy-key <YOUR_DEPLOY_KEY> \
      --ipfs https://ipfs.satsuma.xyz
    ```
+
+Important: Make sure to use `network: sonic-mainnet` in your subgraph.yaml file
 
 ## Schema
 

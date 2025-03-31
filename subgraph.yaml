@@ -6,7 +6,7 @@ schema:
 dataSources:
   - kind: ethereum
     name: ERC20 
-    network: mainnet
+    network: sonic
     source:
       address: "0x0000000000000000000000000000000000000000" # Wildcard for all ERC20 tokens
       abi: ERC20

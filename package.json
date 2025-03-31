@@ -1,31 +1,20 @@
 {
-  "name": "envio-indexer",
+  "name": "sonic-erc20-subgraph",
   "version": "0.1.0",
   "scripts": {
-    "clean": "tsc --clean",
-    "build": "tsc --build",
-    "watch": "tsc --watch",
-    "mocha": "ts-mocha test/**/*.ts",
-    "codegen": "envio codegen",
-    "dev": "envio dev",
-    "test": "pnpm mocha",
-    "start": "ts-node generated/src/Index.bs.js"
-  },
-  "devDependencies": {
-    "@types/chai": "^4.3.11",
-    "@types/mocha": "10.0.6",
-    "@types/node": "20.8.8",
-    "chai": "4.3.10",
-    "mocha": "10.2.0",
-    "ts-mocha": "^10.0.0",
-    "ts-node": "10.9.1",
-    "typescript": "5.2.2"
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ sonic-erc20-subgraph",
+    "create-local": "graph create --node http://localhost:8020/ sonic-erc20-subgraph",
+    "remove-local": "graph remove --node http://localhost:8020/ sonic-erc20-subgraph",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 sonic-erc20-subgraph",
+    "test": "graph test"
   },
   "dependencies": {
-    "envio": "2.13.0",
-    "viem": "2.23.5"
+    "@graphprotocol/graph-cli": "0.59.0",
+    "@graphprotocol/graph-ts": "0.30.0"
   },
-  "optionalDependencies": {
-    "generated": "./generated"
+  "devDependencies": {
+    "matchstick-as": "0.5.0"
   }
 }

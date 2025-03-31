@@ -4,8 +4,6 @@ description: Sonic ERC-20 indexer
 networks:
   - id: 146 # Sonic Mainnet
     start_block: 10861674
-    rpc_config:
-      url: "https://mainnet.sonic.org/rpc"
     contracts:
       - name: ERC20
         # address: "0x0000000000000000000000000000000000000000" # any token

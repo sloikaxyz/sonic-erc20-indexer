@@ -1,4 +1,4 @@
-specVersion: 1.3.0
+specVersion: 1.2.0
 description: Indexing all ERC20 token transfers and approvals on Sonic chain
 repository: https://github.com/sloikaxyz/sonic-erc20-indexer
 schema:

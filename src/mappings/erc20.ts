@@ -1,4 +1,4 @@
-import { BigInt, Address } from "@graphprotocol/graph-ts";
+import { BigInt, Address, log } from "@graphprotocol/graph-ts";
 import { ERC20, Transfer, Approval } from "../../generated/ERC20/ERC20";
 import {
   Token,
@@ -67,7 +67,7 @@ function ensureToken(tokenAddress: Address): Token {
     marketData.totalSupply = totalSupply;
     marketData.circulatingSupply = totalSupply;
     marketData.volume24h = BigInt.fromI32(0);
-    marketData.updatedAt = "0"; 
+    marketData.updatedAt = BigInt.fromI32(0).toString(); 
     marketData.save();
 
     // Setup token
@@ -82,8 +82,10 @@ function ensureToken(tokenAddress: Address): Token {
     token.transactionCount = 0;
     token.transferVolume = BigInt.fromI32(0);
     token.holderCount = 0;
-    token.updatedAt = "0";
+    token.updatedAt = BigInt.fromI32(0).toString();
     token.save();
+
+    log.info("Created new token: {} ({})", [tokenId, name]);
   }
 
   return token as Token;
@@ -97,6 +99,7 @@ function ensureAccount(accountAddress: Address): Account {
   if (account == null) {
     account = new Account(accountId);
     account.save();
+    log.info("Created new account: {}", [accountId]);
   }
 
   return account as Account;
@@ -114,6 +117,7 @@ function ensurePortfolio(ownerAddress: Address): Portfolio {
     portfolio.chain = CHAIN_NAME;
     portfolio.account = portfolioId;
     portfolio.save();
+    log.info("Created new portfolio: {}", [portfolioId]);
   }
 
   return portfolio as Portfolio;
@@ -184,6 +188,13 @@ export function handleTransfer(event: Transfer): void {
     token.holderCount += 1;
     token.save();
   }
+
+  log.info("Processed transfer: {} from {} to {} amount {}", [
+    tokenAddress.toHexString(),
+    event.params.from.toHexString(),
+    event.params.to.toHexString(),
+    event.params.value.toString()
+  ]);
 }
 
 // Handle token approvals
@@ -203,4 +214,11 @@ export function handleApproval(event: Approval): void {
   approval.token = tokenAddress.toHexString();
   approval.amount = event.params.value;
   approval.save();
+
+  log.info("Processed approval: {} owner {} spender {} amount {}", [
+    tokenAddress.toHexString(),
+    event.params.owner.toHexString(),
+    event.params.spender.toHexString(),
+    event.params.value.toString()
+  ]);
 }

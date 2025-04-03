@@ -7,7 +7,7 @@ import {
   Portfolio,
   Project,
   Token,
-  TokenBalance
+  TokenBalance,
 } from "../../generated/schema";
 
 // Constants
@@ -126,6 +126,10 @@ function ensurePortfolio(ownerAddress: Address): Portfolio {
 
 // Handle token transfers
 export function handleTransfer(event: Transfer): void {
+  log.info("Processing transfer event: {}", [
+    event.transaction.hash.toHexString(),
+  ]);
+
   let tokenAddress = event.address;
   let token = ensureToken(tokenAddress);
 

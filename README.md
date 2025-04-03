@@ -130,3 +130,7 @@ Example GraphQL queries:
 ## Notes for Sonic Chain
 
 This subgraph is specifically configured for the Sonic blockchain (chain ID 146). The RPC endpoints in the mapping code are configured to access the Sonic network.
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).

@@ -1,154 +1,135 @@
-# Sonic ERC-20 Indexer
+# Sonic ERC20 Subgraph
 
-A blockchain indexer built with [Envio](https://envio.dev) that tracks ERC-20 token transfers and approvals on the Sonic blockchain.
+This subgraph indexes ERC20 token transfers and approvals on the Sonic blockchain, tracking:
+- Token metadata
+- Account balances
+- Token approvals
+- Market data
+- Portfolio tracking
+- Token popularity metrics
 
-## Overview
+## Setup and Development
 
-This project indexes ERC-20 token events (Transfers and Approvals) on the Sonic blockchain, starting from block 10861674. It maintains a database of account balances and approval records, which can be queried through a GraphQL API.
+### Prerequisites
 
-## Features
+- Node.js (v16 or later)
+- PNPM or NPM
+- Graph CLI (`pnpm install -g @graphprotocol/graph-cli`)
 
-- Tracks ERC-20 token transfers between accounts
-- Records token approvals (allowances)
-- Maintains up-to-date account balances
-- Supports wildcard contract tracking (indexes events from any ERC-20 token)
-- Provides a GraphQL API for querying indexed data
-- Supports unordered multichain indexing
+### Installation
 
-## Prerequisites
+```bash
+# Install dependencies
+pnpm install
+```
 
-- [Node.js](https://nodejs.org/) (v16 or higher)
-- [pnpm](https://pnpm.io/) package manager
-- An [Envio API token](https://envio.dev/app/api-tokens)
+### Local Development
 
-## Installation
+```bash
+# Generate AssemblyScript types from subgraph schema and ABIs
+graph codegen
 
-1. Clone the repository:
+# Build the subgraph
+graph build
+```
+
+## Deployment Options
+
+### Option 1: Self-Hosted Graph Node
+
+For custom chains like Sonic, running your own Graph Node is often the most direct approach:
+
+1. Set up a Graph Node connected to a Sonic RPC:
+   ```yaml
+   graph-node:
+     environment:
+       - ethereum=mainnet:https://eth-mainnet.alchemyapi.io/v2/your-api-key
+       - sonic:146:https://rpc.soniclabs.com
+   ```
+
+2. Deploy to your Graph Node:
    ```bash
-   git clone https://github.com/caffeinum/sonic-erc20-indexer.git
-   cd sonic-erc20-indexer
+   graph create --node http://localhost:8020/ sonic-erc20-subgraph
+   graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 sonic-erc20-subgraph
    ```
 
-2. Install dependencies:
+### Option 2: The Graph Hosted Service
+
+While The Graph's hosted service doesn't directly support Sonic yet, you can request support:
+
+1. Submit a request to The Graph team to add Sonic chain support
+2. Once supported, deploy using:
    ```bash
-   pnpm install
+   graph auth --product hosted-service <YOUR_DEPLOY_KEY>
+   graph deploy --product hosted-service <YOUR_GITHUB_USER>/<SUBGRAPH_NAME>
    ```
 
-3. Create a `.env` file from the example:
+### Option 3: Alchemy Subgraphs
+
+Alchemy Subgraphs supports Sonic chain with network name `sonic-mainnet`:
+
+1. Create a new subgraph in the Alchemy Dashboard
+2. Deploy using:
    ```bash
-   cp .env.example .env
+   graph deploy your-subgraph-name \
+     --version-label v0.1.0 \
+     --node https://subgraphs.alchemy.com/api/subgraphs/deploy \
+     --deploy-key <YOUR_DEPLOY_KEY> \
+     --ipfs https://ipfs.satsuma.xyz
    ```
 
-4. Add your Envio API token to the `.env` file:
-   ```
-   ENVIO_API_TOKEN="your-api-token-here"
-   ```
+Important: Make sure to use `network: sonic-mainnet` in your subgraph.yaml file
 
-## Configuration
+## Schema
 
-The indexer is configured in `config.yaml`:
+The schema includes the following entities:
+- `Token`: ERC20 token with metadata, popularity metrics
+- `Account`: User/wallet addresses
+- `TokenBalance`: Links tokens to accounts with balance
+- `Approval`: Token spending permissions
+- `Portfolio`: User's token collection per chain
+- `MarketData`: Price and market information
+- `Project`: Additional metadata for display
 
-- **Network**: Sonic Mainnet (Chain ID: 146)
-- **Starting Block**: 10861674
-- **Tracked Events**:
-  - `Transfer(address indexed from, address indexed to, uint256 value)`
-  - `Approval(address indexed owner, address indexed spender, uint256 value)`
+## Queries
 
-You can modify the configuration to track specific token contracts by uncommenting and setting the `address` field in the config file.
+Example GraphQL queries:
 
-## Data Schema
+```graphql
+# Get top tokens by holder count
+{
+  tokens(first: 10, orderBy: holderCount, orderDirection: desc) {
+    id
+    name
+    symbol
+    holderCount
+    transactionCount
+    transferVolume
+  }
+}
 
-The project uses the following GraphQL schema:
-
-### Account
-- `id`: The account address (primary key)
-- `balance`: Current token balance
-- `approvals`: List of approvals granted by this account
-
-### Approval
-- `id`: Composite key of owner and spender addresses
-- `amount`: Approved token amount
-- `owner`: Account that granted the approval
-- `spender`: Account that received the approval
-
-## Development
-
-### Generate Code
-
-Before running the indexer, generate the necessary code:
-
-```bash
-pnpm codegen
+# Get token balances for a specific account
+{
+  account(id: "0x...") {
+    tokenBalances {
+      token {
+        name
+        symbol
+      }
+      quantity
+    }
+  }
+}
 ```
 
-### Run in Development Mode
+## Customization
 
-Start the indexer in development mode:
+- Adjust start block in `subgraph.yaml` for different indexing starting points
+- Modify event handlers in `src/mappings/erc20.ts` to capture additional data
 
-```bash
-pnpm dev
-```
+## Notes for Sonic Chain
 
-### Build
-
-Compile the TypeScript code:
-
-```bash
-pnpm build
-```
-
-### Run Tests
-
-Execute the test suite:
-
-```bash
-pnpm test
-```
-
-## Event Handlers
-
-The indexer processes two types of events:
-
-### Transfer Events
-
-When a token transfer occurs:
-1. Updates the sender's balance (subtracts the transferred amount)
-2. Updates the receiver's balance (adds the transferred amount)
-3. Creates new account records if needed
-
-### Approval Events
-
-When a token approval is granted:
-1. Records the approval with owner, spender, and amount
-2. Creates new account records if needed
-
-## Advanced Usage
-
-### Filtering Events
-
-You can filter events by uncommenting and modifying the `eventFilters` section in the event handlers. For example, to track only mint operations (transfers from the zero address):
-
-```typescript
-eventFilters: { from: "0x0000000000000000000000000000000000000000" }
-```
-
-### Multichain Indexing
-
-The indexer supports unordered multichain mode, allowing you to index events from multiple chains in real-time. See the [Envio documentation](https://docs.envio.dev/docs/HyperIndex/multichain-indexing#unordered-multichain-mode) for more details.
-
-## Production Deployment
-
-To run the indexer in production:
-
-```bash
-pnpm start
-```
-
-## Resources
-
-- [Envio Documentation](https://docs.envio.dev)
-- [Sonic Blockchain Explorer](https://explorer.sonic.org/)
-- [ERC-20 Token Standard](https://eips.ethereum.org/EIPS/eip-20)
+This subgraph is specifically configured for the Sonic blockchain (chain ID 146). The RPC endpoints in the mapping code are configured to access the Sonic network.
 
 ## License
 

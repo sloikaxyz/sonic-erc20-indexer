@@ -1,119 +1,119 @@
-type Account {
-  # id is the address of the account
+type Account @entity {
+  "id is the address of the account"
   id: ID!
-  # approvals are a list of approvals that this account has given
+  "approvals are a list of approvals that this account has given"
   approvals: [Approval!]! @derivedFrom(field: "owner")
-  # Token balances for this account
+  "Token balances for this account"
   tokenBalances: [TokenBalance!]! @derivedFrom(field: "owner")
 }
 
-type Token {
-  # id is the token contract address
+type Token @entity {
+  "id is the token contract address"
   id: ID!
-  # address of the token (same as id)
+  "address of the token (same as id)"
   address: String!
-  # chain ID
+  "chain ID"
   chain: String!
-  # token symbol
+  "token symbol"
   symbol: String!
-  # token name
+  "token name"
   name: String!
-  # token decimals
+  "token decimals"
   decimals: Int!
-  # token standard (ERC20)
+  "token standard (ERC20)"
   standard: String!
-  # project information
+  "project information"
   project: Project
-  # token balances
+  "token balances"
   tokenBalances: [TokenBalance!]! @derivedFrom(field: "token")
-  # market data - a token has exactly one market data entry
+  "market data - a token has exactly one market data entry"
   marketData: MarketData
-  # popularity metrics
+  "popularity metrics"
   transactionCount: Int!
   transferVolume: BigInt!
   holderCount: Int!
-  # timestamp when the token was last updated
+  "timestamp when the token was last updated"
   updatedAt: String!
 }
 
-type MarketData {
-  # id is the token address
+type MarketData @entity {
+  "id is the token address"
   id: ID!
-  # token this market data belongs to
+  "token this market data belongs to"
   token: Token!
-  # price in USD
+  "price in USD"
   price: DenominatedValue
-  # fully diluted valuation
+  "fully diluted valuation"
   fullyDilutedValuation: DenominatedValue
-  # market cap
+  "market cap"
   marketCap: DenominatedValue
-  # total supply
+  "total supply"
   totalSupply: BigInt
-  # circulating supply
+  "circulating supply"
   circulatingSupply: BigInt
-  # 24h volume
+  "24h volume"
   volume24h: BigInt
-  # last updated timestamp
+  "last updated timestamp"
   updatedAt: String!
 }
 
-type Project {
-  # id is unique identifier for the project
+type Project @entity {
+  "id is unique identifier for the project"
   id: ID!
-  # name of the project
+  "name of the project"
   name: String!
-  # logo URL
+  "logo URL"
   logoUrl: String
-  # safety level indicator (VERIFIED, MEDIUM_WARNING, STRONG_WARNING, BLOCKED)
+  "safety level indicator (VERIFIED, MEDIUM_WARNING, STRONG_WARNING, BLOCKED)"
   safetyLevel: String
-  # indicates if the token is marked as spam
+  "indicates if the token is marked as spam"
   isSpam: Boolean
 }
 
-type TokenBalance {
-  # id is [owner-token]
+type TokenBalance @entity {
+  "id is [owner-token]"
   id: ID!
-  # quantity of tokens
+  "quantity of tokens"
   quantity: BigInt!
-  # owner of the tokens
+  "owner of the tokens"
   owner: Account!
-  # token information
+  "token information"
   token: Token!
-  # denominated value (can be null if price data unavailable)
+  "denominated value (can be null if price data unavailable)"
   denominatedValue: DenominatedValue
 }
 
-type DenominatedValue {
-  # id is unique identifier
+type DenominatedValue @entity {
+  "id is unique identifier"
   id: ID!
-  # currency (USD, etc.)
+  "currency (USD, etc.)"
   currency: String!
-  # value in the specified currency
-  value: Float!
+  "value in the specified currency"
+  value: BigDecimal!
 }
 
-type Portfolio {
-  # id is the owner address
+type Portfolio @entity {
+  "id is the owner address"
   id: ID!
-  # owner address
+  "owner address"
   ownerAddress: String!
-  # chain
+  "chain"
   chain: String!
-  # total value of all tokens
+  "total value of all tokens"
   tokensTotalDenominatedValue: DenominatedValue
-  # Account associated with this portfolio
+  "Account associated with this portfolio"
   account: Account!
 }
 
-type Approval {
-  # id is the owner address and spender address [owner-spender]
+type Approval @entity {
+  "id is the owner address and spender address [owner-spender]"
   id: ID!
-  # amount is the amount of tokens approved
+  "amount is the amount of tokens approved"
   amount: BigInt!
-  # owner is the account that approved the tokens
+  "owner is the account that approved the tokens"
   owner: Account!
-  # spender is the account that is approved to spend the tokens
+  "spender is the account that is approved to spend the tokens"
   spender: Account!
-  # token that is being approved
+  "token that is being approved"
   token: Token!
 }
